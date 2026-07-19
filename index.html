@@ -254,7 +254,7 @@
         <div class="throw-slot" data-i="2">—</div>
       </div>
 
-      <div class="mult-row">
+      <div class="mult-row" id="throwMultRow">
         <div class="mult-btn selected" data-mult="1">Simple</div>
         <div class="mult-btn" data-mult="2">Double</div>
         <div class="mult-btn" data-mult="3">Triple</div>
@@ -451,9 +451,9 @@ function renderNumGrid(){
 }
 
 let currentMult = 1;
-document.querySelectorAll('.mult-btn').forEach(btn => {
+document.querySelectorAll('#throwMultRow .mult-btn').forEach(btn => {
   btn.onclick = () => {
-    document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('#throwMultRow .mult-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     currentMult = parseInt(btn.dataset.mult);
   };
