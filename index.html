@@ -227,6 +227,13 @@
       <div id="playerInputs"></div>
       <button class="add-player" id="addPlayerBtn">+ Ajouter un joueur</button>
     </div>
+    <div class="panel hidden" id="finishRulePanel">
+      <h2>Règle de sortie</h2>
+      <div class="mult-row">
+        <div class="mult-btn selected" data-finish="double">Double obligatoire</div>
+        <div class="mult-btn" data-finish="simple">Sortie simple</div>
+      </div>
+    </div>
     <button class="big-btn" id="startGameBtn">Commencer la partie</button>
     <button class="ghost-btn" id="backToSelectBtn">‹ Changer de jeu</button>
   </div>
@@ -298,12 +305,22 @@ Object.entries(GAMES).forEach(([key, g], idx) => {
 
 let selectedGameKey = null;
 let playerNames = ['Joueur 1', 'Joueur 2'];
+let finishRule = 'double';
+
+document.querySelectorAll('[data-finish]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('[data-finish]').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    finishRule = btn.dataset.finish;
+  };
+});
 
 function selectGame(key){
   selectedGameKey = key;
   document.getElementById('screen-select').classList.add('hidden');
   document.getElementById('screen-players').classList.remove('hidden');
   document.getElementById('setupGameName').textContent = 'Joueurs — ' + GAMES[key].name;
+  document.getElementById('finishRulePanel').classList.toggle('hidden', GAMES[key].type !== 'x01');
   renderPlayerInputs();
 }
 
@@ -398,6 +415,7 @@ function initGame(gameKey, names){
   const g = GAMES[gameKey];
   state = {
     gameKey, type: g.type,
+    finishRule: finishRule,
     players: names.map(n => ({
       name: n,
       score: g.type === 'x01' ? g.start : 0,
@@ -503,8 +521,9 @@ function applyTurn(){
     const lastThrow = state.turnThrows[state.turnThrows.length-1];
     const lastWasDouble = lastThrow && (lastThrow.mult === 2 || lastThrow.value === 'B50');
     let bust = false;
-    if(remaining < 0 || remaining === 1){ bust = true; }
-    if(remaining === 0 && !lastWasDouble){ bust = true; }
+    if(remaining < 0){ bust = true; }
+    if(remaining === 1 && state.finishRule === 'double'){ bust = true; }
+    if(remaining === 0 && state.finishRule === 'double' && !lastWasDouble){ bust = true; }
 
     if(bust){
       state.log.unshift(`${p.name} : ${throwsLabel} → BUST, score conservé (${p.score})`);
@@ -649,7 +668,9 @@ function renderAll(){
 
   const hint = document.getElementById('checkoutHint');
   if(state.type === 'x01' && state.winnerIdx === null){
-    hint.textContent = checkoutSuggestion(state.players[state.current].score);
+    hint.textContent = state.finishRule === 'double'
+      ? checkoutSuggestion(state.players[state.current].score)
+      : 'Sortie simple activée : n\'importe quelle fléchette qui atteint 0 gagne';
   } else if(state.type === 'shanghai' && state.winnerIdx === null){
     hint.textContent = 'Numéro visé ce tour : ' + state.shanghaiRound;
   } else if(state.type === 'clock' && state.winnerIdx === null){
