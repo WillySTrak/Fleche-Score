@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Fléchettes — Marqueur</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1b140f">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FléchScore">
+<style>
+  :root{
+    --wood: #1b140f;
+    --wood-2: #241b14;
+    --green: #0b3d2e;
+    --green-2: #0f4d3a;
+    --red: #7d1f34;
+    --red-2: #93273e;
+    --cream: #f2e8d5;
+    --cream-dim: #cfc3a8;
+    --gold: #c9a24a;
+    --gold-dim: #8a6f34;
+    --ok: #4f8f5b;
+    --bad: #a13b3b;
+    --font-display: 'Arial Narrow', Arial, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--wood); color:var(--cream); font-family:var(--font-body); overscroll-behavior:none;}
+  body{
+    background-image:
+      radial-gradient(ellipse at top, rgba(255,255,255,0.03), transparent 60%),
+      repeating-linear-gradient(90deg, var(--wood) 0px, var(--wood) 2px, var(--wood-2) 2px, var(--wood-2) 4px);
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+  .app{max-width:520px; margin:0 auto; padding:16px;}
+
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding:10px 4px 18px 4px; border-bottom:1px solid rgba(201,162,74,0.25);
+    margin-bottom:18px;
+  }
+  header.top .title{
+    font-family:var(--font-display);
+    font-weight:800; letter-spacing:0.06em; text-transform:uppercase;
+    font-size:26px; color:var(--cream);
+  }
+  header.top .title span{color:var(--gold);}
+  header.top .subtitle{font-size:11px; color:var(--cream-dim); letter-spacing:0.04em;}
+
+  /* ---- Ecran choix du jeu ---- */
+  .game-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .game-card{
+    background:linear-gradient(160deg, var(--green-2), var(--green));
+    border:1px solid rgba(201,162,74,0.35);
+    border-radius:4px;
+    padding:16px 14px;
+    text-align:left;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+  }
+  .game-card::after{
+    content:"";
+    position:absolute; right:-20px; top:-20px; width:70px; height:70px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(201,162,74,0.18), transparent 70%);
+  }
+  .game-card .num{font-family:var(--font-display); font-size:12px; color:var(--gold); letter-spacing:0.1em;}
+  .game-card .name{font-family:var(--font-display); font-weight:800; font-size:20px; text-transform:uppercase; letter-spacing:0.03em; margin-top:4px;}
+  .game-card .desc{font-size:11.5px; color:var(--cream-dim); margin-top:6px; line-height:1.4;}
+  .game-card:active{transform:scale(0.98);}
+
+  /* ---- Setup joueurs ---- */
+  .panel{
+    background:rgba(0,0,0,0.18);
+    border:1px solid rgba(201,162,74,0.25);
+    border-radius:4px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .panel h2{
+    font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.06em;
+    font-size:14px; color:var(--gold); margin:0 0 12px 0; font-weight:700;
+  }
+  .player-row{display:flex; gap:8px; margin-bottom:8px; align-items:center;}
+  .player-row input{
+    flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(201,162,74,0.3);
+    color:var(--cream); padding:10px 12px; border-radius:3px; font-size:15px; font-family:var(--font-body);
+  }
+  .player-row input:focus{outline:1px solid var(--gold);}
+  .icon-btn{
+    background:none; border:1px solid rgba(201,162,74,0.3); color:var(--cream-dim);
+    width:38px; height:38px; border-radius:3px; font-size:18px; cursor:pointer; flex-shrink:0;
+  }
+  .icon-btn:active{background:rgba(255,255,255,0.06);}
+  .add-player{
+    width:100%; padding:10px; background:none; border:1px dashed rgba(201,162,74,0.4);
+    color:var(--gold); border-radius:3px; font-size:13px; margin-top:4px; cursor:pointer;
+  }
+  .big-btn{
+    width:100%; padding:16px; background:linear-gradient(160deg, var(--gold), var(--gold-dim));
+    border:none; color:#241b0c; font-family:var(--font-display); font-weight:800;
+    text-transform:uppercase; letter-spacing:0.05em; font-size:16px; border-radius:4px; cursor:pointer;
+    margin-top:8px;
+  }
+  .big-btn:active{transform:scale(0.99);}
+  .ghost-btn{
+    width:100%; padding:12px; background:none; border:1px solid rgba(201,162,74,0.3);
+    color:var(--cream-dim); font-size:13px; border-radius:4px; cursor:pointer; margin-top:8px;
+  }
+
+  /* ---- Ecran de jeu ---- */
+  .scoreboard{display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:16px;}
+  .score-card{
+    flex:1; min-width:110px;
+    background:rgba(0,0,0,0.2); border:1px solid rgba(201,162,74,0.2); border-radius:4px;
+    padding:12px 10px; text-align:center; position:relative;
+  }
+  .score-card.active{
+    border-color:var(--gold); background:linear-gradient(160deg, rgba(201,162,74,0.16), rgba(0,0,0,0.2));
+  }
+  .score-card .pname{font-size:11px; color:var(--cream-dim); text-transform:uppercase; letter-spacing:0.05em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .score-card .pscore{font-family:var(--font-display); font-weight:800; font-size:28px; margin-top:2px;}
+  .score-card .psub{font-size:10px; color:var(--gold); margin-top:2px; min-height:12px;}
+
+  .throw-strip{display:flex; justify-content:center; gap:10px; margin-bottom:14px;}
+  .throw-slot{
+    width:56px; height:56px; border-radius:4px; border:1px solid rgba(201,162,74,0.3);
+    background:rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:16px; color:var(--cream-dim);
+  }
+  .throw-slot.filled{background:rgba(201,162,74,0.15); color:var(--cream); border-color:var(--gold);}
+  .throw-slot.bust{background:rgba(161,59,59,0.25); color:#f0b8b8; border-color:var(--bad);}
+
+  .mult-row{display:flex; gap:8px; margin-bottom:12px;}
+  .mult-btn{
+    flex:1; padding:12px; text-align:center; border-radius:4px; border:1px solid rgba(201,162,74,0.3);
+    background:rgba(0,0,0,0.15); color:var(--cream-dim); font-family:var(--font-display);
+    font-weight:700; letter-spacing:0.04em; font-size:13px; cursor:pointer; text-transform:uppercase;
+  }
+  .mult-btn.selected{background:var(--gold); color:#241b0c; border-color:var(--gold);}
+
+  .num-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:7px; margin-bottom:10px;}
+  .num-btn{
+    aspect-ratio:1; border-radius:50%; border:1px solid rgba(201,162,74,0.3);
+    background:linear-gradient(160deg, var(--green-2), var(--green));
+    color:var(--cream); font-family:var(--font-display); font-weight:800; font-size:17px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .num-btn:nth-child(odd){background:linear-gradient(160deg, var(--red-2), var(--red));}
+  .num-btn:active{transform:scale(0.93);}
+  .num-btn.hit{outline:2px solid var(--gold);}
+  .num-btn.closed{opacity:0.35; filter:grayscale(0.6);}
+
+  .special-row{display:flex; gap:8px; margin-bottom:14px;}
+  .special-btn{
+    flex:1; padding:14px; border-radius:4px; border:1px solid rgba(201,162,74,0.35);
+    background:radial-gradient(circle at center, var(--red-2), var(--green));
+    color:var(--cream); font-family:var(--font-display); font-weight:800; font-size:13px;
+    text-align:center; cursor:pointer; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .special-btn:active{transform:scale(0.96);}
+
+  .action-row{display:flex; gap:8px;}
+  .action-row button{flex:1;}
+
+  .miss-btn{
+    background:none; border:1px solid rgba(201,162,74,0.25); color:var(--cream-dim);
+    padding:12px; border-radius:4px; font-size:13px; cursor:pointer;
+  }
+
+  .log{
+    max-height:120px; overflow-y:auto; font-size:12px; color:var(--cream-dim);
+    background:rgba(0,0,0,0.15); border-radius:4px; padding:10px; margin-top:14px;
+    border:1px solid rgba(201,162,74,0.15);
+  }
+  .log div{padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.04);}
+  .log div:last-child{border-bottom:none;}
+
+  .checkout-hint{
+    text-align:center; font-size:12px; color:var(--gold); margin-bottom:10px; min-height:16px;
+  }
+
+  .winner-banner{
+    text-align:center; padding:24px 16px; background:linear-gradient(160deg, var(--gold), var(--gold-dim));
+    border-radius:6px; color:#241b0c; margin-bottom:16px;
+  }
+  .winner-banner .wtitle{font-family:var(--font-display); font-weight:800; font-size:13px; letter-spacing:0.1em; text-transform:uppercase;}
+  .winner-banner .wname{font-family:var(--font-display); font-weight:800; font-size:26px; margin-top:6px; text-transform:uppercase;}
+
+  .hidden{display:none !important;}
+  .cricket-table{width:100%; border-collapse:collapse; margin-bottom:14px; font-size:13px;}
+  .cricket-table th{
+    font-family:var(--font-display); font-size:11px; color:var(--gold); text-transform:uppercase;
+    padding:6px 4px; border-bottom:1px solid rgba(201,162,74,0.3); text-align:center;
+  }
+  .cricket-table td{padding:8px 4px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.05);}
+  .marks{font-family:var(--font-display); font-size:16px; letter-spacing:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div>
+      <div class="title">FLÉCH<span>·</span>SCORE</div>
+      <div class="subtitle">MARQUEUR MANUEL — TOUTE CIBLE</div>
+    </div>
+  </header>
+
+  <!-- ECRAN 1 : CHOIX DU JEU -->
+  <div id="screen-select">
+    <div class="panel">
+      <h2>Choisis le jeu</h2>
+    </div>
+    <div class="game-grid" id="gameGrid"></div>
+  </div>
+
+  <!-- ECRAN 2 : JOUEURS -->
+  <div id="screen-players" class="hidden">
+    <div class="panel">
+      <h2 id="setupGameName">Joueurs</h2>
+      <div id="playerInputs"></div>
+      <button class="add-player" id="addPlayerBtn">+ Ajouter un joueur</button>
+    </div>
+    <button class="big-btn" id="startGameBtn">Commencer la partie</button>
+    <button class="ghost-btn" id="backToSelectBtn">‹ Changer de jeu</button>
+  </div>
+
+  <!-- ECRAN 3 : PARTIE EN COURS -->
+  <div id="screen-game" class="hidden">
+    <button class="ghost-btn hidden" id="notifBtn" style="margin-bottom:10px;">🔔 Activer les notifications (tour + victoire)</button>
+    <div class="scoreboard" id="scoreboard"></div>
+
+    <div id="winnerZone"></div>
+
+    <div id="playZone">
+      <div class="checkout-hint" id="checkoutHint">&nbsp;</div>
+
+      <div class="throw-strip" id="throwStrip">
+        <div class="throw-slot" data-i="0">—</div>
+        <div class="throw-slot" data-i="1">—</div>
+        <div class="throw-slot" data-i="2">—</div>
+      </div>
+
+      <div class="mult-row">
+        <div class="mult-btn selected" data-mult="1">Simple</div>
+        <div class="mult-btn" data-mult="2">Double</div>
+        <div class="mult-btn" data-mult="3">Triple</div>
+      </div>
+
+      <div class="num-grid" id="numGrid"></div>
+
+      <div class="special-row">
+        <div class="special-btn" id="btn25">25<br>Ext. Bull</div>
+        <div class="special-btn" id="btn50">50<br>Bullseye</div>
+        <div class="special-btn" id="btnMiss">Raté<br>0 pt</div>
+      </div>
+
+      <div class="action-row">
+        <button class="icon-btn" id="undoBtn" style="width:100%; height:44px;">↶ Annuler dernière fléchette</button>
+      </div>
+      <button class="big-btn" id="validateTurnBtn">Valider le tour</button>
+    </div>
+
+    <div class="log" id="logZone"></div>
+    <button class="ghost-btn" id="newGameBtn">Nouvelle partie</button>
+  </div>
+
+</div>
+
+<script>
+/* ============ DEFINITION DES JEUX ============ */
+const GAMES = {
+  x501: {name:"501", desc:"Le grand classique. Chacun part de 501, premier à 0 avec un double gagne.", start:501, type:"x01"},
+  x301: {name:"301", desc:"Version courte du 01. Départ à 301, finish en double.", start:301, type:"x01"},
+  x701: {name:"701", desc:"Version longue. Départ à 701, finish en double.", start:701, type:"x01"},
+  cricket: {name:"Cricket", desc:"Ferme les numéros 15 à 20 et le bull en 3 touches chacun, marque des points sur les numéros encore ouverts.", type:"cricket"},
+  clock: {name:"Autour de l'horloge", desc:"Touche les numéros dans l'ordre, de 1 à 20 puis le bull. Premier arrivé gagne.", type:"clock"},
+  shanghai: {name:"Shanghai", desc:"Un numéro cible par tour (1 puis 2, etc.). Simple, double et triple rapportent des points. Un 'Shanghai' (simple+double+triple sur le tour) gagne instantanément.", type:"shanghai"}
+};
+
+let state = {}; // etat de partie courant
+
+/* ============ ECRAN 1 : liste des jeux ============ */
+const gameGrid = document.getElementById('gameGrid');
+Object.entries(GAMES).forEach(([key, g], idx) => {
+  const card = document.createElement('div');
+  card.className = 'game-card';
+  card.innerHTML = `<div class="num">0${idx+1}</div><div class="name">${g.name}</div><div class="desc">${g.desc}</div>`;
+  card.onclick = () => selectGame(key);
+  gameGrid.appendChild(card);
+});
+
+let selectedGameKey = null;
+let playerNames = ['Joueur 1', 'Joueur 2'];
+
+function selectGame(key){
+  selectedGameKey = key;
+  document.getElementById('screen-select').classList.add('hidden');
+  document.getElementById('screen-players').classList.remove('hidden');
+  document.getElementById('setupGameName').textContent = 'Joueurs — ' + GAMES[key].name;
+  renderPlayerInputs();
+}
+
+document.getElementById('backToSelectBtn').onclick = () => {
+  document.getElementById('screen-players').classList.add('hidden');
+  document.getElementById('screen-select').classList.remove('hidden');
+};
+
+/* ============ ECRAN 2 : joueurs ============ */
+function renderPlayerInputs(){
+  const zone = document.getElementById('playerInputs');
+  zone.innerHTML = '';
+  playerNames.forEach((name, i) => {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `<input type="text" value="${name}" data-i="${i}" placeholder="Nom du joueur">
+      ${playerNames.length > 1 ? `<button class="icon-btn" data-remove="${i}">✕</button>` : ''}`;
+    zone.appendChild(row);
+  });
+  zone.querySelectorAll('input').forEach(inp => {
+    inp.oninput = (e) => { playerNames[e.target.dataset.i] = e.target.value; };
+  });
+  zone.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.onclick = (e) => {
+      playerNames.splice(parseInt(e.target.dataset.remove), 1);
+      renderPlayerInputs();
+    };
+  });
+}
+document.getElementById('addPlayerBtn').onclick = () => {
+  if(playerNames.length >= 6) return;
+  playerNames.push('Joueur ' + (playerNames.length + 1));
+  renderPlayerInputs();
+};
+
+document.getElementById('startGameBtn').onclick = () => {
+  const names = playerNames.map(n => n.trim()).filter(n => n.length > 0);
+  if(names.length === 0) return;
+  initGame(selectedGameKey, names);
+  document.getElementById('screen-players').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+  updateNotifBtn();
+};
+
+document.getElementById('newGameBtn').onclick = () => {
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-select').classList.remove('hidden');
+};
+
+/* ============ ECRAN 3 : moteur de jeu ============ */
+const CRICKET_NUMS = [20,19,18,17,16,15,'B']; // B = bull (25 simple / 50 double)
+
+/* ============ NOTIFICATIONS ============ */
+const notifBtn = document.getElementById('notifBtn');
+
+function updateNotifBtn(){
+  if(!('Notification' in window)){ notifBtn.classList.add('hidden'); return; }
+  if(Notification.permission === 'granted'){
+    notifBtn.textContent = '🔔 Notifications activées';
+    notifBtn.classList.remove('hidden');
+  } else if(Notification.permission === 'denied'){
+    notifBtn.classList.add('hidden');
+  } else {
+    notifBtn.textContent = '🔔 Activer les notifications (tour + victoire)';
+    notifBtn.classList.remove('hidden');
+  }
+}
+notifBtn.onclick = () => {
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'default'){
+    Notification.requestPermission().then(updateNotifBtn);
+  }
+};
+
+function sendNotif(title, body){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  if(navigator.serviceWorker && navigator.serviceWorker.getRegistration){
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if(reg){
+        reg.showNotification(title, {body, icon: './icon-192.png', vibrate: [120,60,120]});
+      } else {
+        new Notification(title, {body, icon: './icon-192.png'});
+      }
+    });
+  } else {
+    new Notification(title, {body, icon: './icon-192.png'});
+  }
+  if(navigator.vibrate) navigator.vibrate([120,60,120]);
+}
+
+function initGame(gameKey, names){
+  const g = GAMES[gameKey];
+  state = {
+    gameKey, type: g.type,
+    players: names.map(n => ({
+      name: n,
+      score: g.type === 'x01' ? g.start : 0,
+      marks: g.type === 'cricket' ? Object.fromEntries(CRICKET_NUMS.map(n => [n,0])) : null,
+      clockTarget: g.type === 'clock' ? 1 : null,
+      finished: false
+    })),
+    current: 0,
+    turnThrows: [], // {value, mult, label}
+    log: [],
+    winnerIdx: null,
+    shanghaiRound: 1
+  };
+  renderNumGrid();
+  renderAll();
+}
+
+function renderNumGrid(){
+  const grid = document.getElementById('numGrid');
+  grid.innerHTML = '';
+  const nums = state.type === 'cricket' ? [20,19,18,17,16,15] :
+               state.type === 'clock' ? Array.from({length:20},(_,i)=>i+1) :
+               state.type === 'shanghai' ? Array.from({length:20},(_,i)=>i+1) :
+               Array.from({length:20},(_,i)=>i+1); // x01
+  nums.forEach(n => {
+    const b = document.createElement('div');
+    b.className = 'num-btn';
+    b.textContent = n;
+    b.dataset.num = n;
+    b.onclick = () => addThrow(n);
+    grid.appendChild(b);
+  });
+}
+
+let currentMult = 1;
+document.querySelectorAll('.mult-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    currentMult = parseInt(btn.dataset.mult);
+  };
+});
+
+document.getElementById('btn25').onclick = () => addThrow('B25');
+document.getElementById('btn50').onclick = () => addThrow('B50');
+document.getElementById('btnMiss').onclick = () => addThrow('MISS');
+
+function addThrow(target){
+  if(state.turnThrows.length >= 3) return;
+  if(state.players[state.current].finished) return;
+
+  let value, mult, label;
+  if(target === 'MISS'){ value = 0; mult = 1; label = 'Raté'; }
+  else if(target === 'B25'){ value = 25; mult = 1; label = '25'; }
+  else if(target === 'B50'){ value = 50; mult = 1; label = 'Bull 50'; }
+  else {
+    value = target; mult = currentMult;
+    label = (mult===2?'D':mult===3?'T':'') + target;
+  }
+  state.turnThrows.push({value, mult, label});
+  renderThrowStrip();
+}
+
+document.getElementById('undoBtn').onclick = () => {
+  state.turnThrows.pop();
+  renderThrowStrip();
+};
+
+function renderThrowStrip(){
+  const slots = document.querySelectorAll('.throw-slot');
+  slots.forEach((s, i) => {
+    const t = state.turnThrows[i];
+    if(t){
+      s.textContent = t.label;
+      s.classList.add('filled');
+    } else {
+      s.textContent = '—';
+      s.classList.remove('filled');
+    }
+  });
+}
+
+document.getElementById('validateTurnBtn').onclick = () => {
+  if(state.turnThrows.length === 0) return;
+  applyTurn();
+};
+
+function throwPoints(t){
+  if(t.value === 'B25') return 25;
+  if(t.value === 'B50') return 50;
+  if(t.value === 0) return 0;
+  return t.value * t.mult;
+}
+
+function applyTurn(){
+  const g = GAMES[state.gameKey];
+  const p = state.players[state.current];
+  const throwsLabel = state.turnThrows.map(t => t.label).join(', ') || 'Rien';
+
+  if(state.type === 'x01'){
+    const total = state.turnThrows.reduce((s,t) => s + throwPoints(t), 0);
+    const remaining = p.score - total;
+    const lastThrow = state.turnThrows[state.turnThrows.length-1];
+    const lastWasDouble = lastThrow && (lastThrow.mult === 2 || lastThrow.value === 'B50');
+    let bust = false;
+    if(remaining < 0 || remaining === 1){ bust = true; }
+    if(remaining === 0 && !lastWasDouble){ bust = true; }
+
+    if(bust){
+      state.log.unshift(`${p.name} : ${throwsLabel} → BUST, score conservé (${p.score})`);
+    } else if(remaining === 0){
+      p.score = 0;
+      p.finished = true;
+      state.winnerIdx = state.current;
+      state.log.unshift(`${p.name} : ${throwsLabel} → GAGNE LA PARTIE 🏆`);
+    } else {
+      p.score = remaining;
+      state.log.unshift(`${p.name} : ${throwsLabel} (${total} pts) → reste ${remaining}`);
+    }
+  }
+
+  else if(state.type === 'cricket'){
+    let scoredThisTurn = 0;
+    state.turnThrows.forEach(t => {
+      let key = null, hits = 1;
+      if(t.value === 'B25'){ key='B'; hits=1; }
+      else if(t.value === 'B50'){ key='B'; hits=2; }
+      else if(t.value === 0){ return; }
+      else if(CRICKET_NUMS.includes(t.value)){ key = t.value; hits = t.mult; }
+      else { return; } // numero hors jeu cricket, ignore
+      if(key === null) return;
+      const before = p.marks[key];
+      const after = Math.min(3, before + hits);
+      const overflow = (before + hits) - after; // touches en trop -> points si l'adversaire n'a pas fermé
+      p.marks[key] = after;
+      if(after === 3 && before < 3){
+        // vient de fermer ce numero : les touches en trop comptent en points si un adversaire n'a pas encore ferme ce numero
+      }
+      if(overflow > 0 || after === 3){
+        const anyOpponentOpen = state.players.some((op,i) => i !== state.current && op.marks[key] < 3);
+        const extraHits = before >= 3 ? hits : Math.max(0, (before+hits)-3);
+        if(anyOpponentOpen && extraHits > 0){
+          const val = key === 'B' ? 25 : key;
+          p.score += val * extraHits;
+          scoredThisTurn += val * extraHits;
+        }
+      }
+    });
+    const allClosed = CRICKET_NUMS.every(k => p.marks[k] >= 3);
+    const hasBestScore = state.players.every(op => op === p || p.score >= op.score);
+    if(allClosed && hasBestScore){
+      p.finished = true;
+      state.winnerIdx = state.current;
+      state.log.unshift(`${p.name} : ${throwsLabel} → GAGNE LA PARTIE 🏆`);
+    } else {
+      state.log.unshift(`${p.name} : ${throwsLabel}${scoredThisTurn>0 ? ' (+' + scoredThisTurn + ' pts)' : ''}`);
+    }
+  }
+
+  else if(state.type === 'clock'){
+    state.turnThrows.forEach(t => {
+      if(p.finished) return;
+      const target = p.clockTarget;
+      const isBullTarget = target === 21;
+      if(isBullTarget && (t.value === 'B25' || t.value === 'B50')){
+        p.finished = true;
+        state.winnerIdx = state.current;
+      } else if(t.value === target){
+        p.clockTarget = target + 1;
+        if(p.clockTarget === 21) p.score = 21; // marque juste la progression
+      }
+    });
+    if(p.finished){
+      state.log.unshift(`${p.name} : ${throwsLabel} → GAGNE LA PARTIE 🏆`);
+    } else {
+      state.log.unshift(`${p.name} : ${throwsLabel} → prochain numéro : ${p.clockTarget===21?'BULL':p.clockTarget}`);
+    }
+  }
+
+  else if(state.type === 'shanghai'){
+    const target = state.shanghaiRound;
+    let hasSingle=false, hasDouble=false, hasTriple=false;
+    let gained = 0;
+    state.turnThrows.forEach(t => {
+      if(t.value === target){
+        gained += target * t.mult;
+        if(t.mult===1) hasSingle=true;
+        if(t.mult===2) hasDouble=true;
+        if(t.mult===3) hasTriple=true;
+      }
+    });
+    p.score += gained;
+    if(hasSingle && hasDouble && hasTriple){
+      p.finished = true;
+      state.winnerIdx = state.current;
+      state.log.unshift(`${p.name} : ${throwsLabel} → SHANGHAI ! GAGNE LA PARTIE 🏆`);
+    } else {
+      state.log.unshift(`${p.name} : ${throwsLabel} (+${gained} pts)`);
+    }
+  }
+
+  // passage au joueur suivant si personne n'a gagné
+  state.turnThrows = [];
+  if(state.winnerIdx !== null){
+    sendNotif('🏆 Partie terminée', `${state.players[state.winnerIdx].name} remporte la partie !`);
+  } else {
+    let next = state.current;
+    do{
+      next = (next + 1) % state.players.length;
+    } while(state.players[next].finished && next !== state.current);
+    state.current = next;
+    if(state.type === 'shanghai' && state.current === 0){
+      state.shanghaiRound = Math.min(20, state.shanghaiRound + 1);
+    }
+    sendNotif('À toi de jouer', `${state.players[state.current].name}, c'est ton tour.`);
+  }
+  renderAll();
+}
+
+function checkoutSuggestion(score){
+  if(score > 170 || score < 2) return '';
+  const table = {
+    170:'T20 T20 Bull',167:'T20 T19 Bull',164:'T20 T18 Bull',161:'T20 T17 Bull',
+    160:'T20 T20 D20',158:'T20 T20 D19',157:'T20 T19 D20',156:'T20 T20 D18',
+    155:'T20 T19 D19',154:'T20 T18 D20',153:'T20 T19 D18',152:'T20 T20 D16',
+    151:'T20 T17 D20',150:'T20 T18 D18',
+    40:'D20',36:'D18',32:'D16',24:'D12',20:'D10',16:'D8',12:'D6',8:'D4',4:'D2',2:'D1',
+    50:'Bull',32:'D16',
+    36:'D18', 100:'T20 D20', 96:'T20 D18', 90:'T18 D18', 80:'T20 D10', 60:'S20 D20'
+  };
+  if(table[score]) return 'Finish suggéré : ' + table[score];
+  return '';
+}
+
+function renderAll(){
+  renderScoreboard();
+  renderThrowStrip();
+  renderLog();
+
+  const winnerZone = document.getElementById('winnerZone');
+  const playZone = document.getElementById('playZone');
+  if(state.winnerIdx !== null){
+    winnerZone.innerHTML = `<div class="winner-banner"><div class="wtitle">Victoire</div><div class="wname">${state.players[state.winnerIdx].name}</div></div>`;
+    playZone.classList.add('hidden');
+  } else {
+    winnerZone.innerHTML = '';
+    playZone.classList.remove('hidden');
+  }
+
+  const hint = document.getElementById('checkoutHint');
+  if(state.type === 'x01' && state.winnerIdx === null){
+    hint.textContent = checkoutSuggestion(state.players[state.current].score);
+  } else if(state.type === 'shanghai' && state.winnerIdx === null){
+    hint.textContent = 'Numéro visé ce tour : ' + state.shanghaiRound;
+  } else if(state.type === 'clock' && state.winnerIdx === null){
+    const t = state.players[state.current].clockTarget;
+    hint.textContent = 'Numéro à toucher : ' + (t===21?'BULL':t);
+  } else {
+    hint.textContent = '';
+  }
+
+  // etat visuel des boutons numeros pour cricket
+  if(state.type === 'cricket'){
+    document.querySelectorAll('.num-btn').forEach(b => {
+      const n = parseInt(b.dataset.num);
+      const closedByAll = state.players.every(p => p.marks[n] >= 3);
+      b.classList.toggle('closed', closedByAll);
+    });
+  }
+}
+
+function renderScoreboard(){
+  const zone = document.getElementById('scoreboard');
+  zone.innerHTML = '';
+  state.players.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'score-card' + (i === state.current && state.winnerIdx===null ? ' active' : '');
+    let scoreDisplay = p.score;
+    let sub = '';
+    if(state.type === 'cricket'){
+      const closed = CRICKET_NUMS.filter(k => p.marks[k] >= 3).length;
+      sub = closed + '/7 fermés';
+    } else if(state.type === 'clock'){
+      scoreDisplay = p.clockTarget === 21 ? 'BULL' : p.clockTarget;
+      sub = 'cible';
+    } else if(state.type === 'shanghai'){
+      sub = 'points';
+    } else {
+      sub = 'restant';
+    }
+    card.innerHTML = `<div class="pname">${p.name}</div><div class="pscore">${scoreDisplay}</div><div class="psub">${sub}</div>`;
+    zone.appendChild(card);
+  });
+}
+
+function renderLog(){
+  const zone = document.getElementById('logZone');
+  zone.innerHTML = state.log.slice(0,30).map(l => `<div>${l}</div>`).join('');
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
